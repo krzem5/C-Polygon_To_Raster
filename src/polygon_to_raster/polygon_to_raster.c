@@ -161,28 +161,28 @@ void polygon_to_raster(const point_t* p,uint32_t pl,image_t* o){
 					st=1;
 				}
 				else{
-					uint32_t t=e;
-					if (j>t){
-						uint32_t tmp=t;
-						t=j;
-						j=tmp;
+					uint32_t n=e;
+					if (j>n){
+						uint32_t t=n;
+						n=j;
+						j=t;
 					}
-					t++;
-					if (j>>3==t>>3){
-						o->dt[off+(j>>3)]|=((1<<(t-j))-1)<<(8+j-t-(j&7));
+					n++;
+					if (j>>3==n>>3){
+						o->dt[off+(j>>3)]|=((1<<(n-j))-1)<<(8+j-n-(j&7));
 					}
 					else{
 						uint8_t m=(1<<(8-(j&7)))-1;
 						j>>=3;
 						o->dt[off+j]|=m;
-						m=0xff<<(8-(t&7));
-						t>>=3;
+						m=0xff<<(8-(n&7));
+						n>>=3;
 						j++;
-						while (j<t){
+						while (j<n){
 							o->dt[off+j]=0xff;
 							j++;
 						}
-						o->dt[off+t]|=m;
+						o->dt[off+n]|=m;
 					}
 					st=0;
 				}
