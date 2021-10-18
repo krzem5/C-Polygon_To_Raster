@@ -16,7 +16,6 @@
 	} while (0)
 
 #define BMP_HEADER_SIZE 54
-#define DIB_HEADER_SIZE 40
 
 
 
@@ -147,21 +146,16 @@ void polygon_to_raster(const point_t* p,uint32_t pl,image_t* o){
 			if (i<(l+k)->y0||i>(l+k)->y1){
 				continue;
 			}
-			uint32_t e=(uint32_t)roundf(i*(l+k)->dt.s.a+(l+k)->dt.s.b);
-			if (e<0&&e>bbox[2]){
+			uint32_t x=(uint32_t)roundf(i*(l+k)->dt.s.a+(l+k)->dt.s.b);
+			if (x<bbox[0]&&x>=bbox[2]){
 				continue;
 			}
-			if (j==e){
-				if (st){
-					o->dt[off+(j>>3)]|=1<<(7-(j&7));
-				}
+			if (j==x){
+				o->dt[off+(j>>3)]|=st<<(7-(j&7));
 			}
 			else{
-				if (!st){
-					st=1;
-				}
-				else{
-					uint32_t n=e;
+				if (st){
+					uint32_t n=x;
 					if (j>n){
 						uint32_t t=n;
 						n=j;
@@ -169,7 +163,7 @@ void polygon_to_raster(const point_t* p,uint32_t pl,image_t* o){
 					}
 					n++;
 					if (j>>3==n>>3){
-						o->dt[off+(j>>3)]|=((1<<(n-j))-1)<<(8+j-n-(j&7));
+						o->dt[off+(j>>3)]|=((1<<(n-j))-1)<<((j&0xfffffff8)-n+8);
 					}
 					else{
 						uint8_t m=(1<<(8-(j&7)))-1;
@@ -177,16 +171,16 @@ void polygon_to_raster(const point_t* p,uint32_t pl,image_t* o){
 						o->dt[off+j]|=m;
 						m=0xff<<(8-(n&7));
 						n>>=3;
+						o->dt[off+n]|=m;
 						j++;
 						while (j<n){
 							o->dt[off+j]=0xff;
 							j++;
 						}
-						o->dt[off+n]|=m;
 					}
-					st=0;
 				}
-				j=e;
+				j=x;
+				st=!st;
 			}
 		}
 	}
@@ -199,15 +193,15 @@ void image_to_file(const image_t* img,color_t a,color_t b,FILE* o){
 	ASSERT(img);
 	ASSERT(o);
 	ASSERT(BMP_HEADER_SIZE<256);
-	ASSERT(DIB_HEADER_SIZE<256);
 	uint32_t dt_sz=(((img->w+7)&0xfffffff8)*img->h)<<3;
 	uint32_t sz=BMP_HEADER_SIZE+dt_sz;
-	uint8_t bm_h[BMP_HEADER_SIZE+8]={'B','M',sz&0xff,(sz>>8)&0xff,(sz>>16)&0xff,sz>>24,0,0,0,0,BMP_HEADER_SIZE+8,0,0,0,DIB_HEADER_SIZE,0,0,0,img->w&0xff,(img->w>>8)&0xff,(img->w>>16)&0xff,img->w>>24,img->h&0xff,(img->h>>8)&0xff,(img->h>>16)&0xff,img->h>>24,1,0,1,0,0,0,0,0,dt_sz&0xff,(dt_sz>>8)&0xff,(dt_sz>>16)&0xff,dt_sz>>24,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,a&0xff,(a>>8)&0xff,(a>>16)&0xff,0,b&0xff,(b>>8)&0xff,(b>>16)&0xff,0};
+	uint8_t bm_h[BMP_HEADER_SIZE+8]={'B','M',sz&0xff,(sz>>8)&0xff,(sz>>16)&0xff,sz>>24,0,0,0,0,BMP_HEADER_SIZE+8,0,0,0,40,0,0,0,img->w&0xff,(img->w>>8)&0xff,(img->w>>16)&0xff,img->w>>24,img->h&0xff,(img->h>>8)&0xff,(img->h>>16)&0xff,img->h>>24,1,0,1,0,0,0,0,0,dt_sz&0xff,(dt_sz>>8)&0xff,(dt_sz>>16)&0xff,dt_sz>>24,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,a&0xff,(a>>8)&0xff,(a>>16)&0xff,0,b&0xff,(b>>8)&0xff,(b>>16)&0xff,0};
 	ASSERT(fwrite(bm_h,sizeof(uint8_t),BMP_HEADER_SIZE+8,o)==BMP_HEADER_SIZE+8);
 	uint32_t i=img->h;
+	uint32_t w=img->w>>3;
 	while (i){
 		i--;
-		fwrite(img->dt+i*(img->w>>3),sizeof(uint8_t),img->w>>3,o);
+		fwrite(img->dt+i*w,sizeof(uint8_t),w,o);
 	}
 }
 
