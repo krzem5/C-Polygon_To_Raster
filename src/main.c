@@ -3,7 +3,6 @@
 
 
 
-
 int main(int argc,const char** argv){
 	const point_t p[]={
 		{10,10},
